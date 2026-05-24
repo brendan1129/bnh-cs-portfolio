@@ -1,0 +1,31 @@
+name: Deploy Portfolio to AWS
+
+on:
+  push:
+    branches:
+      - main  # Triggers the workflow every time you push to the main branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-2 # Switch this to your bucket's actual AWS region
+
+    - name: Sync Static Files to S3
+      run: |
+        aws s3 sync . s3://bnh-cs-portfolio --delete --exclude ".git*" --exclude ".github*"
+      # NOTE: If your project uses a framework build step (like Vite, React, or Next), 
+      # change the "." to your output folder name (like "./dist" or "./build")
+
+    - name: Invalidate CloudFront Cache
+      run: |
+        aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"
